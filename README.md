@@ -1,2 +1,2 @@
-# Proyecto1machine
-Video demonstration of linear and nonlinear regression using Manim
+# Proyecto 1 machine Learning
+Demostración en vídeo de regresión lineal y no lineal utilizando Manim
