@@ -6,14 +6,14 @@ El objetivo es explicar de manera intuitiva cómo funcionan los modelos de regre
 
 ---
 
-## 📌 Autores – Grupo 6
+##  Autores – Grupo 6
 - Meza León, Ricardo Manuel  
 - Ramos Bonilla, Miguel Angel  
 - Silva Azañero, Mateo Alejandro  
 
 ---
 
-## 🎯 Descripción del Proyecto
+##  Descripción del Proyecto
 
 La animación muestra:
 - Regresión lineal con datos ruidosos y presencia de valores atípicos
@@ -25,7 +25,7 @@ El resultado final es un video en alta resolución en formato MPEG.
 
 ---
 
-## 🛠 Requisitos
+##  Requisitos
 
 - Python 3.9 o superior  
 - Manim Community v0.19.1  
