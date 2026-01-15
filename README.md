@@ -21,8 +21,20 @@ La animación muestra:
 - Regresión no lineal usando un modelo polinómico
 - Comparación visual entre datos y modelo aprendido
 
+---
 
+##  Requisitos
 
+- Python 3.9 o superior  
+- Manim Community v0.19.1  
+- NumPy  
 
+Instalar dependencias con:
+
+pip install manim
+pip install numpy
+
+Y una vez instaladas las librerias desde el powershell correr este codigo:
+manim -pqh proj.py RegressionDemo
 
 
