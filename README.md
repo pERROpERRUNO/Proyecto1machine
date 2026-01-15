@@ -21,15 +21,8 @@ La animación muestra:
 - Regresión no lineal usando un modelo polinómico
 - Comparación visual entre datos y modelo aprendido
 
-El resultado final es un video en alta resolución en formato MPEG.
 
----
 
-##  Requisitos
-
-- Python 3.9 o superior  
-- Manim Community v0.19.1  
-- NumPy  
 
 
 
