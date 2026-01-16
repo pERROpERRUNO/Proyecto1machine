@@ -27,7 +27,6 @@ Para ejecutar esta animación, es necesario tener instalados los siguientes comp
 
 ### Dependencias de Software
 * **Python 3.9+**: Lenguaje de programación base.
-* **FFmpeg**: Motor de procesamiento de video (necesario para Manim).
 * **MiKTeX / LaTeX**: **Requisito crítico** para la generación de fórmulas matemáticas ($y = wx + b$).
 
 ### Librerías de Python
