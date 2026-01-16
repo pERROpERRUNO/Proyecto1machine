@@ -38,90 +38,165 @@ class RegressionDemo(Scene):
         y = 0.5 * x**3 - 2 * x**2 + 3*x + 1 + np.random.normal(0, 0.5, len(x))
         return x, y
 
-    #  REGRESIÓN LINEAL 
-    def regresion_lineal_optimizada(self):
-        header = Title("1. Regresión Lineal")
-        self.add(header)
+    # Regresión lineal 
+    def regresion_lineal(self):
+        title = Title("Regresión Lineal ")
+        self.add(title)
 
-        ejes = Axes(
+        axes = Axes(
             x_range=[0, 10, 1],
             y_range=[0, 20, 2],
             axis_config={"include_numbers": True}
-        ).scale(0.7).shift(DOWN*0.5)
+        ).scale(0.7).shift(DOWN * 0.5)
 
         x, y = self.generar_data_lineal()
-        puntos = VGroup(*[Dot(ejes.c2p(xi, yi), color=BLUE) for xi, yi in zip(x, y)])
+        points = VGroup(*[
+            Dot(axes.c2p(xi, yi), color=BLUE) for xi, yi in zip(x, y)
+        ])
 
-        # Trackers
-        w = ValueTracker(0.3)
-        b = ValueTracker(5)
+        w = ValueTracker(0.0)
+        b = ValueTracker(0.0)
 
-        # Línea y residuos dinámicos
-        linea = always_redraw(lambda: ejes.plot(lambda t: w.get_value()*t + b.get_value(), color=YELLOW))
-        residuos = always_redraw(lambda: VGroup(*[
-            Line(ejes.c2p(xi, yi), ejes.c2p(xi, w.get_value()*xi + b.get_value()), color=RED, stroke_width=2)
-            for xi, yi in zip(x, y)
-        ]))
+        line = always_redraw(
+            lambda: axes.plot(lambda t: w.get_value() * t + b.get_value(), color=YELLOW)
+        )
 
-        # Parámetros visibles
-        w_text = always_redraw(lambda: MathTex(f"w={w.get_value():.2f}", color=YELLOW).to_corner(UL).shift(DOWN))
-        b_text = always_redraw(lambda: MathTex(f"b={b.get_value():.2f}", color=YELLOW).next_to(w_text, DOWN))
+        residuals = always_redraw(
+            lambda: VGroup(*[
+                Line(
+                    axes.c2p(xi, yi),
+                    axes.c2p(xi, w.get_value() * xi + b.get_value()),
+                    color=RED,
+                    stroke_width=2
+                )
+                for xi, yi in zip(x, y)
+            ])
+        )
+
+        w_text = always_redraw(
+            lambda: MathTex(f"w = {w.get_value():.2f}", color=YELLOW)
+            .to_corner(UL).shift(DOWN)
+        )
+
+        b_text = always_redraw(
+            lambda: MathTex(f"b = {b.get_value():.2f}", color=YELLOW)
+            .next_to(w_text, DOWN)
+        )
+
         formula = MathTex("y = wx + b", color=YELLOW).next_to(b_text, DOWN)
 
-        self.play(Create(ejes), FadeIn(puntos))
-        self.play(Create(linea), Create(residuos), FadeIn(w_text), FadeIn(b_text), Write(formula))
+        self.play(Create(axes), FadeIn(points))
+        self.play(Create(line), Create(residuals), FadeIn(w_text), FadeIn(b_text), Write(formula))
         self.wait(1)
-        self.play(w.animate.set_value(1.15), b.animate.set_value(2.2), run_time=4)
+
+        lr = 0.001
+        epochs = 60
+
+        for _ in range(epochs):
+            y_pred = w.get_value() * x + b.get_value()
+            error = y_pred - y
+
+            dw = (2 / len(x)) * np.sum(error * x)
+            db = (2 / len(x)) * np.sum(error)
+
+            self.play(
+                w.animate.set_value(w.get_value() - lr * dw),
+                b.animate.set_value(b.get_value() - lr * db),
+                run_time=0.1,
+                rate_func=linear
+            )
+
         self.wait(2)
-        self.play(FadeOut(VGroup(ejes, puntos, linea, residuos, w_text, b_text, formula, header)))
+        self.play(FadeOut(VGroup(axes, points, line, residuals, w_text, b_text, formula, title)))
 
-    #  REGRESIÓN NO LINEAL 
-    def regresion_no_lineal_optimizada(self):
-        header = Title("2. Regresión No Lineal")
-        self.add(header)
+    # Regresión no lineal con descenso por gradiente
+    def regresion_no_lineal_gradiente(self):
+        title = Title("Regresión No Lineal con Descenso por Gradiente")
+        self.add(title)
 
-        ejes = Axes(
+        axes = Axes(
             x_range=[0, 4, 0.5],
             y_range=[0, 25, 5],
             axis_config={"include_numbers": True}
-        ).scale(0.7).shift(DOWN*0.5)
+        ).scale(0.7).shift(DOWN * 0.5)
 
         x, y = self.generar_data_no_lineal()
-        puntos = VGroup(*[Dot(ejes.c2p(xi, yi), color=PURPLE) for xi, yi in zip(x, y)])
+        points = VGroup(*[
+            Dot(axes.c2p(xi, yi), color=PURPLE) for xi, yi in zip(x, y)
+        ])
 
-        # Trackers
-        a = ValueTracker(0.1)
-        b = ValueTracker(-0.5)
-        c = ValueTracker(1.0)
-        d = ValueTracker(2.0)
+        a = ValueTracker(0.0)
+        b = ValueTracker(0.0)
+        c = ValueTracker(0.0)
+        d = ValueTracker(0.0)
 
-        curva = always_redraw(lambda: ejes.plot(
-            lambda t: a.get_value()*t**3 + b.get_value()*t**2 + c.get_value()*t + d.get_value(),
-            x_range=[0,4], color=PINK
-        ))
-
-        residuos = always_redraw(lambda: VGroup(*[
-            Line(
-                ejes.c2p(xi, yi),
-                ejes.c2p(xi, a.get_value()*xi**3 + b.get_value()*xi**2 + c.get_value()*xi + d.get_value()),
-                color=ORANGE, stroke_width=2
+        curve = always_redraw(
+            lambda: axes.plot(
+                lambda t: a.get_value()*t**3 + b.get_value()*t**2 +
+                          c.get_value()*t + d.get_value(),
+                x_range=[0, 4],
+                color=PINK
             )
-            for xi, yi in zip(x, y)
-        ]))
+        )
 
-        coef_text = always_redraw(lambda: MathTex(
-            f"a={a.get_value():.2f}, b={b.get_value():.2f}, c={c.get_value():.2f}, d={d.get_value():.2f}",
-            font_size=30, color=PINK
-        ).to_corner(UL).shift(DOWN))
+        residuals = always_redraw(
+            lambda: VGroup(*[
+                Line(
+                    axes.c2p(xi, yi),
+                    axes.c2p(
+                        xi,
+                        a.get_value()*xi**3 + b.get_value()*xi**2 +
+                        c.get_value()*xi + d.get_value()
+                    ),
+                    color=ORANGE,
+                    stroke_width=2
+                )
+                for xi, yi in zip(x, y)
+            ])
+        )
+
+        coef_text = always_redraw(
+            lambda: MathTex(
+                f"a={a.get_value():.2f}, b={b.get_value():.2f}, "
+                f"c={c.get_value():.2f}, d={d.get_value():.2f}",
+                font_size=30,
+                color=PINK
+            ).to_corner(UL).shift(DOWN)
+        )
+
         formula = MathTex("y = ax^3 + bx^2 + cx + d", color=PINK).next_to(coef_text, DOWN)
 
-        self.play(Create(ejes), FadeIn(puntos))
-        self.play(Create(curva), Create(residuos), FadeIn(coef_text), Write(formula))
+        self.play(Create(axes), FadeIn(points))
+        self.play(Create(curve), Create(residuals), FadeIn(coef_text), Write(formula))
         self.wait(1)
-        self.play(a.animate.set_value(0.5), b.animate.set_value(-2.0),
-                  c.animate.set_value(3.0), d.animate.set_value(1.0), run_time=5)
-        self.wait(2)
-        self.play(FadeOut(VGroup(ejes, puntos, curva, residuos, coef_text, formula, header)))
+
+        lr = 0.0003
+        epochs = 80
+
+        for _ in range(epochs):
+            y_pred = (
+                a.get_value()*x**3 + b.get_value()*x**2 +
+                c.get_value()*x + d.get_value()
+            )
+
+            error = y_pred - y
+
+            da = (2 / len(x)) * np.sum(error * x**3)
+            db = (2 / len(x)) * np.sum(error * x**2)
+            dc = (2 / len(x)) * np.sum(error * x)
+            dd = (2 / len(x)) * np.sum(error)
+
+            self.play(
+                a.animate.set_value(a.get_value() - lr * da),
+                b.animate.set_value(b.get_value() - lr * db),
+                c.animate.set_value(c.get_value() - lr * dc),
+                d.animate.set_value(d.get_value() - lr * dd),
+                run_time=0.08,
+                rate_func=linear
+            )
+
+        self.wait(3)
+
 
     #  UNDERFITTING Y OVERFITTING 
     def underfitting_overfitting(self):
@@ -189,5 +264,4 @@ class RegressionDemo(Scene):
             self.play(FadeIn(p, shift=LEFT))
             self.wait(1.2)
         self.wait(5)
-
 
