@@ -1,174 +1,136 @@
 from manim import *
 import numpy as np
 
+
 class RegressionDemo(Scene):
     def construct(self):
-        self.show_title()
-        self.linear_regression()
-        self.nonlinear_regression()
+        # Secuencias de la animación
+        self.introduccion()
+        self.regresion_lineal_optimizada()
+        self.regresion_no_lineal_optimizada()
+        self.comparativa_final()
+        self.conclusiones()
+
+    def introduccion(self):
+        titulo = Text("Análisis de Regresión", font_size=48, color=BLUE)
+        subtitulo = Text("Modelado Lineal y No Lineal", font_size=32).next_to(titulo, DOWN)
+
+        nombres = VGroup(
+            Text("Grupo 6", font_size=24, color=GRAY),
+            Text("Ricardo Meza • Miguel Ramos • Mateo Silva", font_size=20, color=GRAY)
+        ).arrange(DOWN).to_edge(DOWN)
+
+        self.play(Write(titulo))
+        self.play(FadeIn(subtitulo, shift=UP))
+        self.play(FadeIn(nombres))
         self.wait(2)
+        self.play(FadeOut(titulo), FadeOut(subtitulo), FadeOut(nombres))
 
-    def show_title(self):
-        title = Text(
-            "Linear and Nonlinear Regression",
-            font_size=42
-        ).to_edge(UP)
+    def regresion_lineal_optimizada(self):
+        header = Title("1. Regresión Lineal Optimizada")
+        self.add(header)
 
-        subtitle = Text(
-            "Grupo 6 – Integrantes:",
-            font_size=28
-        )
+        ejes = Axes(x_range=[0, 10, 1], y_range=[0, 15, 2], axis_config={"include_tip": False}).scale(0.7).shift(
+            DOWN * 0.5)
 
-        members = VGroup(
-            Text("Meza León, Ricardo Manuel", font_size=24),
-            Text("Ramos Bonilla, Miguel Angel", font_size=24),
-            Text("Silva Azañero, Mateo Alejandro", font_size=24)
-        ).arrange(DOWN, buff=0.2)
+        # Datos
+        x_pts = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9])
+        y_pts = np.array([2.1, 3.9, 5.2, 11.5, 7.1, 9.3, 10.2, 12.8, 14.1])
+        puntos = VGroup(*[Dot(ejes.c2p(x, y), color=BLUE) for x, y in zip(x_pts, y_pts)])
 
-        info = VGroup(subtitle, members).arrange(DOWN, buff=0.4)
-        info.next_to(title, DOWN, buff=0.6)
+        # Fórmulas LaTeX
+        formula = MathTex("y = wx + b", color=YELLOW).to_corner(UL).shift(DOWN)
+        loss_func = MathTex(r"MSE = \\frac{1}{n} \\sum (y_i - \hat{y}_i)^2", font_size=30).next_to(formula, DOWN,
+                                                                                                  aligned_edge=LEFT)
 
-        self.play(FadeIn(title, shift=DOWN))
-        self.play(LaggedStart(*[FadeIn(obj) for obj in info], lag_ratio=0.2))
+        w = ValueTracker(0.1)
+        b = ValueTracker(8.0)
+
+        linea = always_redraw(lambda: ejes.plot(lambda x: w.get_value() * x + b.get_value(), color=YELLOW))
+
+        # Visualización de error (Cuadrados)
+        cuadrados = always_redraw(lambda: VGroup(*[
+            Square(side_length=abs(ejes.c2p(0, y_pts[i])[1] - ejes.c2p(0, w.get_value() * x_pts[i] + b.get_value())[1]),
+                   fill_opacity=0.2,
+                   color=RED if abs(y_pts[i] - (w.get_value() * x_pts[i] + b.get_value())) > 2 else GREEN)
+                                                 .move_to(
+                ejes.c2p(x_pts[i], (y_pts[i] + w.get_value() * x_pts[i] + b.get_value()) / 2))
+            for i in range(len(x_pts))
+        ]))
+
+        self.play(Create(ejes), Write(formula))
+        self.play(FadeIn(puntos))
+        self.play(Create(linea), FadeIn(cuadrados), Write(loss_func))
+        self.wait(1)
+
+        # Animación de optimización
+        self.play(w.animate.set_value(1.35), b.animate.set_value(1.1), run_time=4)
         self.wait(2)
+        self.play(FadeOut(VGroup(ejes, puntos, linea, cuadrados, formula, loss_func, header)))
 
-        self.play(FadeOut(title), FadeOut(info))
+    def regresion_no_lineal_optimizada(self):
+        header = Title("2. Regresión No Lineal (Polinomial)")
+        self.add(header)
 
-    def linear_regression(self):
-        header = Text("Linear Regression", font_size=36).to_edge(UP)
-        self.play(Write(header))
+        ejes = Axes(x_range=[0, 5, 1], y_range=[0, 20, 5]).scale(0.7).shift(DOWN * 0.5)
 
-        
-        x = np.linspace(0, 10, 30)
-        y = 1.2 * x + 2 + np.random.normal(0, 0.5 + 0.1*x, len(x))  # ruido creciente
-        y[5] += 3  # outlier puntual
-        coef = np.polyfit(x, y, 1)
+        # Datos curvos
+        x_val = np.array([0.5, 1.2, 2.0, 2.8, 3.5, 4.2, 4.8])
+        y_val = np.array([2.5, 3.1, 5.8, 10.2, 13.5, 17.2, 19.0])
+        puntos = VGroup(*[Dot(ejes.c2p(x, y), color=PURPLE) for x, y in zip(x_val, y_val)])
 
-       
-        model_text = Text("Model:  y = w·x + b", font_size=28)
-        loss_text = Text("Loss:  L = (1/N) Σ (y − ŷ)²", font_size=28)
-        values_text = Text(
-            f"Learned model:  y = {coef[0]:.2f}·x + {coef[1]:.2f}",
-            font_size=26
-        )
+        formula = MathTex("y = ax^2 + bx + c", color=PINK).to_corner(UL).shift(DOWN)
 
-        formulas = VGroup(model_text, loss_text, values_text).arrange(DOWN, buff=0.35)
-        self.play(LaggedStart(*[FadeIn(f) for f in formulas], lag_ratio=0.3))
-        self.wait(2)
-        self.play(FadeOut(formulas))
+        # Simulamos la curvatura con un tracker
+        curva_param = ValueTracker(0)  # Grado de curvatura
 
-        
-        axes = Axes(
-            x_range=[0, 10, 1],
-            y_range=[0, 15, 1],
-            axis_config={"color": WHITE},
-            tips=False
-        ).shift(DOWN * 0.5)
+        curva = always_redraw(lambda: ejes.plot(
+            lambda x: curva_param.get_value() * (x ** 2) + 0.5 * x + 2,
+            color=PINK, x_range=[0, 5]
+        ))
 
-        axes.get_x_axis().add_numbers(font_size=20)
-        axes.get_y_axis().add_numbers(font_size=20)
-        labels = axes.get_axis_labels(Text("x"), Text("y"))
-
-        self.play(Create(axes), Write(labels))
-
-       
-        points = VGroup(*[Dot(axes.c2p(x[i], y[i]), radius=0.05, color=BLUE) for i in range(len(x))])
-        self.play(LaggedStartMap(FadeIn, points, lag_ratio=0.05, run_time=1.5))
-
-        
-        reg_line = axes.plot(lambda t: coef[0]*t + coef[1], x_range=[0, 10], color=RED)
-        self.play(Create(reg_line))
-        self.wait(2)
-
-      
-        residuals = VGroup(*[
-            Line(
-                axes.c2p(x[i], y[i]),
-                axes.c2p(x[i], coef[0]*x[i] + coef[1]),
-                color=YELLOW,
-                stroke_width=2
-            ) for i in range(len(x))
-        ])
-        self.play(LaggedStartMap(Create, residuals, lag_ratio=0.05))
-        self.wait(2)
-
-        self.play(
-            FadeOut(points),
-            FadeOut(reg_line),
-            FadeOut(residuals),
-            FadeOut(axes),
-            FadeOut(labels),
-            FadeOut(header)
-        )
-
-    def nonlinear_regression(self):
-        header = Text("Nonlinear Regression (Polynomial)", font_size=36).to_edge(UP)
-        self.play(Write(header))
-
-       
-        x = np.linspace(0, 4, 40)
-        y = 0.5*x**3 - 2*x**2 + 3*x + 1 + np.random.normal(0, 0.5 + 0.2*x, len(x))
-        coef = np.polyfit(x, y, 3)
-
-        
-        model_text = Text("Model:  y = a·x³ + b·x² + c·x + d", font_size=28)
-        loss_text = Text("Loss:  L = (1/N) Σ (y − ŷ)²", font_size=28)
-        values_text = Text(
-            f"Learned model:  y = {coef[0]:.2f}·x³ + {coef[1]:.2f}·x² + {coef[2]:.2f}·x + {coef[3]:.2f}",
-            font_size=26
-        )
-
-        formulas = VGroup(model_text, loss_text, values_text).arrange(DOWN, buff=0.35)
-        self.play(LaggedStart(*[FadeIn(f) for f in formulas], lag_ratio=0.3))
-        self.wait(2)
-        self.play(FadeOut(formulas))
-
-        
-        axes = Axes(
-            x_range=[0, 4, 1],
-            y_range=[-2, 10, 2],  # límite máximo en 10
-            axis_config={"color": WHITE},
-            tips=False
-        ).shift(DOWN * 0.5)
-
-        axes.get_x_axis().add_numbers(font_size=20)
-        axes.get_y_axis().add_numbers(font_size=20)
-        labels = axes.get_axis_labels(Text("x"), Text("y"))
-
-        self.play(Create(axes), Write(labels))
-
-       
-        points = VGroup(*[Dot(axes.c2p(x[i], y[i]), radius=0.05, color=GREEN) for i in range(len(x))])
-        self.play(LaggedStartMap(FadeIn, points, lag_ratio=0.05, run_time=1.5))
-
-        
-        poly_curve = axes.plot(
-            lambda t: min(coef[0]*t**3 + coef[1]*t**2 + coef[2]*t + coef[3], 10),
-            x_range=[0, 4],
-            color=YELLOW
-        )
-        self.play(Create(poly_curve))
-        self.wait(2)
-
-        
-        # Mostrar residuos
-        
-        residuals = VGroup(*[
-            Line(
-                axes.c2p(x[i], y[i]),
-                axes.c2p(x[i], min(coef[0]*x[i]**3 + coef[1]*x[i]**2 + coef[2]*x[i] + coef[3], 10)),
-                color=RED,
-                stroke_width=2
-            ) for i in range(len(x))
-        ])
-        self.play(LaggedStartMap(Create, residuals, lag_ratio=0.05))
+        self.play(Create(ejes), FadeIn(puntos), Write(formula))
+        self.play(Create(curva))
         self.wait(3)
 
-        self.play(
-            FadeOut(points),
-            FadeOut(poly_curve),
-            FadeOut(residuals),
-            FadeOut(axes),
-            FadeOut(labels),
-            FadeOut(header)
-        )
+        # Optimización visual de la parábola
+        self.play(curva_param.animate.set_value(0.7), run_time=4)
+        self.wait(3)
+        self.play(FadeOut(VGroup(ejes, puntos, curva, formula, header)))
+
+    def comparativa_final(self):
+        header = Title("3. Comparativa: Subajuste vs Ajuste")
+        self.add(header)
+
+        ejes = Axes(x_range=[0, 5, 1], y_range=[0, 20, 5]).scale(0.7)
+        x_val = np.linspace(0.5, 4.5, 15)
+        y_val = 1.2 * x_val ** 3 - 4 * x_val ** 2 + 5 * x_val + 2 + np.random.normal(0, 0.5, 15)
+        puntos = VGroup(*[Dot(ejes.c2p(x, y), color=WHITE, radius=0.05) for x, y in zip(x_val, y_val)])
+
+        linea = ejes.plot(lambda x: 2 * x + 3, color=RED)
+        label_l = Text("Lineal (Underfitting)", color=RED, font_size=20).next_to(linea, UP)
+
+        coefs = np.polyfit(x_val, y_val, 3)
+        curva = ejes.plot(lambda x: coefs[0] * x ** 3 + coefs[1] * x ** 2 + coefs[2] * x + coefs[3], color=GREEN)
+        label_nl = Text("No Lineal (Ideal)", color=GREEN, font_size=20).next_to(curva, RIGHT)
+
+        self.play(Create(ejes), FadeIn(puntos))
+        self.play(Create(linea), Write(label_l))
+        self.wait(3)
+        self.play(Create(curva), Write(label_nl), linea.animate.set_stroke(opacity=0.2))
+        self.wait(3)
+        self.play(FadeOut(VGroup(ejes, puntos, linea, curva, label_l, label_nl, header)))
+
+    def conclusiones(self):
+        titulo = Text("Conclusiones", color=BLUE).to_edge(UP)
+        puntos = VGroup(
+            Text("1. La Regresión Lineal es simple pero limitada.", font_size=28),
+            Text("2. La Regresión No Lineal captura patrones complejos.", font_size=28),
+            Text("3. El objetivo siempre es minimizar la función de pérdida.", font_size=28)
+        ).arrange(DOWN, aligned_edge=LEFT).shift(UP * 0.5)
+
+        self.play(Write(titulo))
+        for p in puntos:
+            self.play(Write(p))
+            self.wait(2)
+        self.wait(4)
