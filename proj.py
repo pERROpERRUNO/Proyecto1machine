@@ -29,13 +29,13 @@ class RegressionDemo(Scene):
     # GENERACIÓN DE DATA 
     def generar_data_lineal(self):
         x = np.linspace(0, 10, 30)
-        y = 1.2 * x + 2 + np.random.normal(0, 0.5 + 0.1 * x, len(x))
+        y = 1.2 * x + 2 + np.random.normal(0, 0.5 , len(x))
         y[5] += 3  # outlier
         return x, y
 
     def generar_data_no_lineal(self):
         x = np.linspace(0, 4, 40)
-        y = 0.5 * x**3 - 2 * x**2 + 3*x + 1 + np.random.normal(0, 0.5 + 0.2*x, len(x))
+        y = 0.5 * x**3 - 2 * x**2 + 3*x + 1 + np.random.normal(0, 0.5, len(x))
         return x, y
 
     #  REGRESIÓN LINEAL 
@@ -189,4 +189,5 @@ class RegressionDemo(Scene):
             self.play(FadeIn(p, shift=LEFT))
             self.wait(1.2)
         self.wait(5)
+
 
