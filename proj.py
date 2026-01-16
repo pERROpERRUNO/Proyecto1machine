@@ -1,19 +1,19 @@
 from manim import *
 import numpy as np
 
-
 class RegressionDemo(Scene):
     def construct(self):
-        # Secuencias de la animación
         self.introduccion()
         self.regresion_lineal_optimizada()
         self.regresion_no_lineal_optimizada()
+        self.underfitting_overfitting()
         self.comparativa_final()
         self.conclusiones()
 
+    #  INTRODUCCIÓN 
     def introduccion(self):
         titulo = Text("Análisis de Regresión", font_size=48, color=BLUE)
-        subtitulo = Text("Modelado Lineal y No Lineal", font_size=32).next_to(titulo, DOWN)
+        subtitulo = Text("Modelos Lineales y No Lineales", font_size=32).next_to(titulo, DOWN)
 
         nombres = VGroup(
             Text("Grupo 6", font_size=24, color=GRAY),
@@ -26,111 +26,167 @@ class RegressionDemo(Scene):
         self.wait(2)
         self.play(FadeOut(titulo), FadeOut(subtitulo), FadeOut(nombres))
 
+    # GENERACIÓN DE DATA 
+    def generar_data_lineal(self):
+        x = np.linspace(0, 10, 30)
+        y = 1.2 * x + 2 + np.random.normal(0, 0.5 + 0.1 * x, len(x))
+        y[5] += 3  # outlier
+        return x, y
+
+    def generar_data_no_lineal(self):
+        x = np.linspace(0, 4, 40)
+        y = 0.5 * x**3 - 2 * x**2 + 3*x + 1 + np.random.normal(0, 0.5 + 0.2*x, len(x))
+        return x, y
+
+    #  REGRESIÓN LINEAL 
     def regresion_lineal_optimizada(self):
-        header = Title("1. Regresión Lineal Optimizada")
+        header = Title("1. Regresión Lineal")
         self.add(header)
 
-        ejes = Axes(x_range=[0, 10, 1], y_range=[0, 15, 2], axis_config={"include_tip": False}).scale(0.7).shift(
-            DOWN * 0.5)
+        ejes = Axes(
+            x_range=[0, 10, 1],
+            y_range=[0, 20, 2],
+            axis_config={"include_numbers": True}
+        ).scale(0.7).shift(DOWN*0.5)
 
-        # Datos
-        x_pts = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9])
-        y_pts = np.array([2.1, 3.9, 5.2, 11.5, 7.1, 9.3, 10.2, 12.8, 14.1])
-        puntos = VGroup(*[Dot(ejes.c2p(x, y), color=BLUE) for x, y in zip(x_pts, y_pts)])
+        x, y = self.generar_data_lineal()
+        puntos = VGroup(*[Dot(ejes.c2p(xi, yi), color=BLUE) for xi, yi in zip(x, y)])
 
-        # Fórmulas LaTeX
-        formula = MathTex("y = wx + b", color=YELLOW).to_corner(UL).shift(DOWN)
-        loss_func = MathTex(r"MSE = \\frac{1}{n} \\sum (y_i - \hat{y}_i)^2", font_size=30).next_to(formula, DOWN,
-                                                                                                  aligned_edge=LEFT)
+        # Trackers
+        w = ValueTracker(0.3)
+        b = ValueTracker(5)
 
-        w = ValueTracker(0.1)
-        b = ValueTracker(8.0)
-
-        linea = always_redraw(lambda: ejes.plot(lambda x: w.get_value() * x + b.get_value(), color=YELLOW))
-
-        # Visualización de error (Cuadrados)
-        cuadrados = always_redraw(lambda: VGroup(*[
-            Square(side_length=abs(ejes.c2p(0, y_pts[i])[1] - ejes.c2p(0, w.get_value() * x_pts[i] + b.get_value())[1]),
-                   fill_opacity=0.2,
-                   color=RED if abs(y_pts[i] - (w.get_value() * x_pts[i] + b.get_value())) > 2 else GREEN)
-                                                 .move_to(
-                ejes.c2p(x_pts[i], (y_pts[i] + w.get_value() * x_pts[i] + b.get_value()) / 2))
-            for i in range(len(x_pts))
+        # Línea y residuos dinámicos
+        linea = always_redraw(lambda: ejes.plot(lambda t: w.get_value()*t + b.get_value(), color=YELLOW))
+        residuos = always_redraw(lambda: VGroup(*[
+            Line(ejes.c2p(xi, yi), ejes.c2p(xi, w.get_value()*xi + b.get_value()), color=RED, stroke_width=2)
+            for xi, yi in zip(x, y)
         ]))
 
-        self.play(Create(ejes), Write(formula))
-        self.play(FadeIn(puntos))
-        self.play(Create(linea), FadeIn(cuadrados), Write(loss_func))
-        self.wait(1)
-
-        # Animación de optimización
-        self.play(w.animate.set_value(1.35), b.animate.set_value(1.1), run_time=4)
-        self.wait(2)
-        self.play(FadeOut(VGroup(ejes, puntos, linea, cuadrados, formula, loss_func, header)))
-
-    def regresion_no_lineal_optimizada(self):
-        header = Title("2. Regresión No Lineal (Polinomial)")
-        self.add(header)
-
-        ejes = Axes(x_range=[0, 5, 1], y_range=[0, 20, 5]).scale(0.7).shift(DOWN * 0.5)
-
-        # Datos curvos
-        x_val = np.array([0.5, 1.2, 2.0, 2.8, 3.5, 4.2, 4.8])
-        y_val = np.array([2.5, 3.1, 5.8, 10.2, 13.5, 17.2, 19.0])
-        puntos = VGroup(*[Dot(ejes.c2p(x, y), color=PURPLE) for x, y in zip(x_val, y_val)])
-
-        formula = MathTex("y = ax^2 + bx + c", color=PINK).to_corner(UL).shift(DOWN)
-
-        # Simulamos la curvatura con un tracker
-        curva_param = ValueTracker(0)  # Grado de curvatura
-
-        curva = always_redraw(lambda: ejes.plot(
-            lambda x: curva_param.get_value() * (x ** 2) + 0.5 * x + 2,
-            color=PINK, x_range=[0, 5]
-        ))
-
-        self.play(Create(ejes), FadeIn(puntos), Write(formula))
-        self.play(Create(curva))
-        self.wait(3)
-
-        # Optimización visual de la parábola
-        self.play(curva_param.animate.set_value(0.7), run_time=4)
-        self.wait(3)
-        self.play(FadeOut(VGroup(ejes, puntos, curva, formula, header)))
-
-    def comparativa_final(self):
-        header = Title("3. Comparativa: Subajuste vs Ajuste")
-        self.add(header)
-
-        ejes = Axes(x_range=[0, 5, 1], y_range=[0, 20, 5]).scale(0.7)
-        x_val = np.linspace(0.5, 4.5, 15)
-        y_val = 1.2 * x_val ** 3 - 4 * x_val ** 2 + 5 * x_val + 2 + np.random.normal(0, 0.5, 15)
-        puntos = VGroup(*[Dot(ejes.c2p(x, y), color=WHITE, radius=0.05) for x, y in zip(x_val, y_val)])
-
-        linea = ejes.plot(lambda x: 2 * x + 3, color=RED)
-        label_l = Text("Lineal (Underfitting)", color=RED, font_size=20).next_to(linea, UP)
-
-        coefs = np.polyfit(x_val, y_val, 3)
-        curva = ejes.plot(lambda x: coefs[0] * x ** 3 + coefs[1] * x ** 2 + coefs[2] * x + coefs[3], color=GREEN)
-        label_nl = Text("No Lineal (Ideal)", color=GREEN, font_size=20).next_to(curva, RIGHT)
+        # Parámetros visibles
+        w_text = always_redraw(lambda: MathTex(f"w={w.get_value():.2f}", color=YELLOW).to_corner(UL).shift(DOWN))
+        b_text = always_redraw(lambda: MathTex(f"b={b.get_value():.2f}", color=YELLOW).next_to(w_text, DOWN))
+        formula = MathTex("y = wx + b", color=YELLOW).next_to(b_text, DOWN)
 
         self.play(Create(ejes), FadeIn(puntos))
-        self.play(Create(linea), Write(label_l))
-        self.wait(3)
-        self.play(Create(curva), Write(label_nl), linea.animate.set_stroke(opacity=0.2))
-        self.wait(3)
-        self.play(FadeOut(VGroup(ejes, puntos, linea, curva, label_l, label_nl, header)))
+        self.play(Create(linea), Create(residuos), FadeIn(w_text), FadeIn(b_text), Write(formula))
+        self.wait(1)
+        self.play(w.animate.set_value(1.15), b.animate.set_value(2.2), run_time=4)
+        self.wait(2)
+        self.play(FadeOut(VGroup(ejes, puntos, linea, residuos, w_text, b_text, formula, header)))
 
+    #  REGRESIÓN NO LINEAL 
+    def regresion_no_lineal_optimizada(self):
+        header = Title("2. Regresión No Lineal")
+        self.add(header)
+
+        ejes = Axes(
+            x_range=[0, 4, 0.5],
+            y_range=[0, 25, 5],
+            axis_config={"include_numbers": True}
+        ).scale(0.7).shift(DOWN*0.5)
+
+        x, y = self.generar_data_no_lineal()
+        puntos = VGroup(*[Dot(ejes.c2p(xi, yi), color=PURPLE) for xi, yi in zip(x, y)])
+
+        # Trackers
+        a = ValueTracker(0.1)
+        b = ValueTracker(-0.5)
+        c = ValueTracker(1.0)
+        d = ValueTracker(2.0)
+
+        curva = always_redraw(lambda: ejes.plot(
+            lambda t: a.get_value()*t**3 + b.get_value()*t**2 + c.get_value()*t + d.get_value(),
+            x_range=[0,4], color=PINK
+        ))
+
+        residuos = always_redraw(lambda: VGroup(*[
+            Line(
+                ejes.c2p(xi, yi),
+                ejes.c2p(xi, a.get_value()*xi**3 + b.get_value()*xi**2 + c.get_value()*xi + d.get_value()),
+                color=ORANGE, stroke_width=2
+            )
+            for xi, yi in zip(x, y)
+        ]))
+
+        coef_text = always_redraw(lambda: MathTex(
+            f"a={a.get_value():.2f}, b={b.get_value():.2f}, c={c.get_value():.2f}, d={d.get_value():.2f}",
+            font_size=30, color=PINK
+        ).to_corner(UL).shift(DOWN))
+        formula = MathTex("y = ax^3 + bx^2 + cx + d", color=PINK).next_to(coef_text, DOWN)
+
+        self.play(Create(ejes), FadeIn(puntos))
+        self.play(Create(curva), Create(residuos), FadeIn(coef_text), Write(formula))
+        self.wait(1)
+        self.play(a.animate.set_value(0.5), b.animate.set_value(-2.0),
+                  c.animate.set_value(3.0), d.animate.set_value(1.0), run_time=5)
+        self.wait(2)
+        self.play(FadeOut(VGroup(ejes, puntos, curva, residuos, coef_text, formula, header)))
+
+    #  UNDERFITTING Y OVERFITTING 
+    def underfitting_overfitting(self):
+        header = Title("3. Underfitting vs Overfitting")
+        self.add(header)
+
+        ejes = Axes(x_range=[0,4,0.5], y_range=[0,25,5],
+                    axis_config={"include_numbers": True}).scale(0.7).shift(DOWN*0.5)
+
+        x, y = self.generar_data_no_lineal()
+        puntos = VGroup(*[Dot(ejes.c2p(xi, yi), color=WHITE, radius=0.05) for xi, yi in zip(x, y)])
+
+        # Underfitting: recta simple
+        w = ValueTracker(1.0)
+        b = ValueTracker(2.0)
+        linea_under = always_redraw(lambda: ejes.plot(lambda t: w.get_value()*t + b.get_value(), x_range=[0,4], color=RED))
+        label_under = Text("Underfitting\nModelo simple", font_size=22, color=RED).to_corner(UL).shift(DOWN)
+
+        # Overfitting: polinomio + ondulación
+        coef = ValueTracker(0.0)
+        curva_over = always_redraw(lambda: ejes.plot(
+            lambda t: 0.5*t**3 -2*t**2 + 3*t +1 + coef.get_value()*np.sin(6*t),
+            x_range=[0,4], color=BLUE
+        ))
+        label_over = Text("Overfitting\nModelo complejo", font_size=22, color=BLUE).to_corner(UR).shift(DOWN)
+
+        # Animación
+        self.play(Create(ejes), FadeIn(puntos))
+        self.wait(2)
+        self.play(Create(linea_under), Write(label_under))
+        self.wait(2)
+        self.play(FadeOut(linea_under), FadeOut(label_under))
+        self.play(Create(curva_over), Write(label_over))
+        self.play(coef.animate.set_value(0.8), run_time=4)
+        self.wait(2)
+        self.play(FadeOut(VGroup(ejes, puntos, curva_over, label_over, header)))
+
+    #  COMPARATIVA FINAL 
+    def comparativa_final(self):
+        header = Title("4. Comparativa y Elección del Modelo")
+        self.add(header)
+
+        texto = VGroup(
+            Text("• Underfitting: el modelo no captura la forma de los datos.", font_size=28, color=RED),
+            Text("• Overfitting: el modelo se ajusta demasiado al ruido.", font_size=28, color=BLUE),
+            Text("• Modelo ideal: suficiente complejidad para capturar patrones sin sobreajustar.", font_size=28, color=GREEN)
+        ).arrange(DOWN, aligned_edge=LEFT).shift(UP)
+
+        self.play(Write(texto))
+        self.wait(6)
+        self.play(FadeOut(VGroup(texto, header)))
+
+    #  CONCLUSIONES 
     def conclusiones(self):
         titulo = Text("Conclusiones", color=BLUE).to_edge(UP)
         puntos = VGroup(
-            Text("1. La Regresión Lineal es simple pero limitada.", font_size=28),
-            Text("2. La Regresión No Lineal captura patrones complejos.", font_size=28),
-            Text("3. El objetivo siempre es minimizar la función de pérdida.", font_size=28)
-        ).arrange(DOWN, aligned_edge=LEFT).shift(UP * 0.5)
+            Text("1. La animación permite ver cómo se construye una regresión paso a paso.", font_size=26),
+            Text("2. En regresión lineal se observa el ajuste de una recta a los datos.", font_size=26),
+            Text("3. En regresión no lineal se muestra cómo cambia la curvatura del modelo.", font_size=26),
+            Text("5. Los residuos animados permiten entender visualmente el error del ajuste.", font_size=26),
+        ).arrange(DOWN, aligned_edge=LEFT).shift(UP*0.3)
 
         self.play(Write(titulo))
         for p in puntos:
-            self.play(Write(p))
-            self.wait(2)
-        self.wait(4)
+            self.play(FadeIn(p, shift=LEFT))
+            self.wait(1.2)
+        self.wait(5)
+
