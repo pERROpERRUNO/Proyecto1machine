@@ -4,8 +4,8 @@ import numpy as np
 class RegressionDemo(Scene):
     def construct(self):
         self.introduccion()
-        self.regresion_lineal_optimizada()
-        self.regresion_no_lineal_optimizada()
+        self.regresion_lineal()
+        self.regresion_no_lineal()
         self.underfitting_overfitting()
         self.comparativa_final()
         self.conclusiones()
@@ -264,4 +264,6 @@ class RegressionDemo(Scene):
             self.play(FadeIn(p, shift=LEFT))
             self.wait(1.2)
         self.wait(5)
+
+
 
